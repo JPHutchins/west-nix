@@ -1,5 +1,6 @@
 """Prefetch git repositories to get SHA256 hashes for Nix."""
 
+import asyncio
 import json
 import subprocess
 from typing import NamedTuple
@@ -13,7 +14,7 @@ class PrefetchResult(NamedTuple):
     rev: str
 
 
-def prefetch_git(url: str, rev: str) -> PrefetchResult:
+async def prefetch_git(url: str, rev: str) -> PrefetchResult:
     """Prefetch a git repository using nix-prefetch-git.
 
     Args:
@@ -29,19 +30,31 @@ def prefetch_git(url: str, rev: str) -> PrefetchResult:
         json.JSONDecodeError: If nix-prefetch-git output is not valid JSON
     """
     try:
-        result = subprocess.run(
-            ["nix-prefetch-git", "--url", url, "--rev", rev, "--quiet"],
-            capture_output=True,
-            text=True,
-            check=True,
+        proc = await asyncio.create_subprocess_exec(
+            "nix-prefetch-git",
+            "--url",
+            url,
+            "--rev",
+            rev,
+            "--quiet",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
+        stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            raise subprocess.CalledProcessError(
+                proc.returncode or 1, "nix-prefetch-git", stderr=error_msg
+            )
+
     except FileNotFoundError:
         raise FileNotFoundError(
             "nix-prefetch-git not found in PATH. "
             "Please ensure Nix is installed and nix-prefetch-git is available."
         )
 
-    data = json.loads(result.stdout)
+    data = json.loads(stdout.decode())
 
     return PrefetchResult(
         sha256=data["sha256"],

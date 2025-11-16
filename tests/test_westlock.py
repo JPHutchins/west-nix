@@ -7,8 +7,8 @@ from typing import NamedTuple, Final
 import pytest
 
 
-REPO_ROOT = Path(__file__).parent.parent
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
+REPO_ROOT: Final = Path(__file__).parent.parent
+FIXTURES_DIR: Final = Path(__file__).parent / "fixtures"
 
 
 class Implementation(NamedTuple):
@@ -69,7 +69,6 @@ def build_implementations() -> dict[str, Path]:
                     f"stderr: {result.stderr}"
                 )
 
-        # Verify executable exists
         if not impl.exe_path.exists():
             pytest.fail(f"Executable not found after build: {impl.exe_path}")
 
