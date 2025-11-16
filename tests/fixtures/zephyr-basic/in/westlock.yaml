@@ -1,0 +1,30 @@
+manifest:
+  group-filter:
+  - -babblesim
+  - -optional
+  projects:
+  - name: zephyr
+    url: https://github.com/zephyrproject-rtos/zephyr
+    revision: 3cf7b202780d788976e4bf3e46724e63d23f6bcc
+    west-commands: scripts/west-commands.yml
+  - name: cmsis_6
+    url: https://github.com/zephyrproject-rtos/CMSIS_6
+    revision: 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74
+    path: modules/hal/cmsis_6
+    groups:
+    - hal
+  - name: hal_nordic
+    url: https://github.com/zephyrproject-rtos/hal_nordic
+    revision: 7858281d843468fe53c829995fb63f45a227387a
+    path: modules/hal/nordic
+    groups:
+    - hal
+  - name: hal_stm32
+    url: https://github.com/zephyrproject-rtos/hal_stm32
+    revision: 286dd285b5bb4fddafdfff27b5405264e5a61bfe
+    path: modules/hal/stm32
+    groups:
+    - hal
+  self:
+    path: zephyr-example-application
+    west-commands: scripts/west-commands.yml

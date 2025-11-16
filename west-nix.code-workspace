@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "west-nix",
+      "path": "."
+    },
+    {
+      "name": "westlock (Python)",
+      "path": "westlock/python"
+    },
+    {
+      "name": "tests",
+      "path": "tests"
+    }
+  ],
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "charliermarsh.ruff",
+      "ms-python.mypy-type-checker"
+    ]
+  }
+}
