@@ -103,6 +103,7 @@ def test_westlock_implementation(
     exe_path: Final = build_implementations[impl.name]
 
     with input_file.open() as stdin_file:
+        print(f"Running {impl.name} implementation on {fixture_name}...")
         result: Final = subprocess.run(
             [str(exe_path)],
             stdin=stdin_file,
