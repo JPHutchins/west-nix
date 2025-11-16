@@ -29,13 +29,14 @@
 
             dependencies = with pkgs.python3Packages; [
               pyyaml
+              west
             ];
 
             nativeBuildInputs = [ pkgs.makeWrapper ];
 
-            # Wrap to include nix-prefetch-git in PATH
+            # Wrap to include nix-prefetch-git and git in PATH for westupdate
             makeWrapperArgs = [
-              "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nix-prefetch-git ]}"
+              "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nix-prefetch-git pkgs.git ]}"
             ];
 
             meta = with pkgs.lib; {
@@ -66,6 +67,8 @@
               python3
               uv
               nix-prefetch-git
+              git
+              python3Packages.west
             ];
           };
         });

@@ -2,36 +2,18 @@
 
 import subprocess
 from pathlib import Path
-from typing import NamedTuple, Final
+from typing import Final
 
 import pytest
 
-
-REPO_ROOT: Final = Path(__file__).parent.parent
-FIXTURES_DIR: Final = Path(__file__).parent / "fixtures"
+from conftest import Implementation, get_implementations
 
 
-class Implementation(NamedTuple):
-    """Describes a westlock implementation."""
-
-    name: str
-    build_cmd: tuple[str, ...] | None
-    exe_path: Path
-
-
-def get_implementations() -> tuple[Implementation, ...]:
-    """Get list of available westlock implementations."""
-    return (
-        Implementation(
-            name="python",
-            build_cmd=("nix", "build", ".#westlock-python", "--out-link", "result-python"),
-            exe_path=REPO_ROOT / "result-python/bin/westlock",
-        ),
-    )
+FIXTURES_DIR: Final = Path(__file__).parent / "fixtures" / "westlock"
 
 
 def get_fixture_cases() -> tuple[tuple[str, Path, Path], ...]:
-    """Discover all test fixtures with in/out directories."""
+    """Discover all westlock test fixtures with in/out directories."""
     fixtures = []
     for fixture_dir in FIXTURES_DIR.iterdir():
         if not fixture_dir.is_dir():
@@ -43,38 +25,7 @@ def get_fixture_cases() -> tuple[tuple[str, Path, Path], ...]:
         if in_dir.exists() and out_dir.exists():
             fixtures.append((fixture_dir.name, in_dir, out_dir))
 
-    return fixtures
-
-
-@pytest.fixture(scope="session")
-def build_implementations() -> dict[str, Path]:
-    """Build all implementations once per test session."""
-    built_exes = {}
-
-    for impl in get_implementations():
-        if impl.build_cmd:
-            print(f"\nBuilding {impl.name} implementation with Nix...")
-            result = subprocess.run(
-                impl.build_cmd,
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-
-            if result.returncode != 0:
-                pytest.fail(
-                    f"Failed to build {impl.name}:\n"
-                    f"stdout: {result.stdout}\n"
-                    f"stderr: {result.stderr}"
-                )
-
-        if not impl.exe_path.exists():
-            pytest.fail(f"Executable not found after build: {impl.exe_path}")
-
-        built_exes[impl.name] = impl.exe_path
-
-    return built_exes
+    return tuple(fixtures)
 
 
 @pytest.mark.parametrize("impl", get_implementations(), ids=lambda impl: impl.name)
