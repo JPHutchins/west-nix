@@ -16,5 +16,7 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - uses: astral-sh/setup-uv@v6
+
       - run: uv run pytest -v -s
         working-directory: tests
