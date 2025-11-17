@@ -138,22 +138,14 @@ def test_complete_workflow(
 
         print(f"\n=== Step 5: Verify west list works ===")
 
-        # Set up git config for nix store
-        env = {
-            **subprocess.os.environ,
-            "GIT_CONFIG_COUNT": "1",
-            "GIT_CONFIG_KEY_0": "safe.directory",
-            "GIT_CONFIG_VALUE_0": "*",
-        }
-
-        # Run west list
+        # Run west list using nix develop to ensure west is available
+        # Run from workspace_dir (which has flake.nix) and cd to the west workspace
         result = subprocess.run(
-            ["west", "list"],
-            cwd=west_workspace_dir,
+            ["nix", "develop", "--command", "bash", "-c", f"cd {west_workspace_dir} && west list"],
+            cwd=workspace_dir,
             capture_output=True,
             text=True,
             check=False,
-            env=env,
             timeout=60,
         )
 
