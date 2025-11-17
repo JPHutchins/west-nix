@@ -23,7 +23,6 @@
 
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
-          pkgs.west
           westinit
         ];
 

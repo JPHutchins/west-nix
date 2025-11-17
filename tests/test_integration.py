@@ -136,13 +136,28 @@ def test_complete_workflow(
 
         print(f"✓ Workspace structure validated")
 
+        # Verify .west/config has correct content
+        west_config = west_workspace_dir / ".west" / "config"
+        config_content = west_config.read_text()
+        assert "path = .." in config_content, ".west/config doesn't have correct manifest path"
+        assert "file = west.yml" in config_content, ".west/config doesn't have correct manifest file"
+
+        # Verify env.sh was generated
+        env_sh = west_workspace_dir / "env.sh"
+        assert env_sh.exists(), "env.sh not created"
+        env_content = env_sh.read_text()
+        assert "GIT_CONFIG" in env_content, "env.sh missing git config"
+        assert "ZEPHYR_BASE" in env_content, "env.sh missing ZEPHYR_BASE"
+
+        print(f"✓ Workspace configuration validated")
+
         print(f"\n=== Step 5: Verify west list works ===")
 
-        # Run west list using nix develop to ensure west is available
-        # Run from workspace_dir (which has flake.nix) and cd to the west workspace
+        # Run west list to verify the workspace is correctly configured
+        # Source the env.sh file to set up the environment properly
         result = subprocess.run(
-            ["nix", "develop", "--command", "bash", "-c", f"cd {west_workspace_dir} && west list"],
-            cwd=workspace_dir,
+            ["bash", "-c", "source env.sh && west list"],
+            cwd=west_workspace_dir,
             capture_output=True,
             text=True,
             check=False,
