@@ -11,6 +11,14 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
     {
+      # Library functions for consuming west-nix in other flakes
+      lib = forAllSystems (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        import ./lib { inherit pkgs; }
+      );
+
       packages = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
