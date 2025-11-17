@@ -54,13 +54,21 @@
             };
           };
 
+          # Expose westlock and westupdate as separate packages
+          westlock = self.packages.${system}.westlock-python;
+          westupdate = self.packages.${system}.westlock-python;
+
           default = self.packages.${system}.westlock-python;
         });
 
       apps = forAllSystems (system: {
         westlock = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/westlock";
+          program = "${self.packages.${system}.westlock}/bin/westlock";
+        };
+        westupdate = {
+          type = "app";
+          program = "${self.packages.${system}.westupdate}/bin/westupdate";
         };
         default = self.apps.${system}.westlock;
       });
