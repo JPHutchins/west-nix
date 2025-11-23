@@ -2,56 +2,100 @@
 
 This example demonstrates how to consume `west-nix` in your own flake to create reproducible West workspaces.
 
-## Workflow
+## Quick Start
 
-### 1. Generate the lockfile
+### 1. Generate westlock.nix (First Time Only)
+
+```bash
+nix run github:JPHutchins/west-nix#westupdate west.yml > westlock.nix
+git add westlock.nix
+```
+
+### 2. Initialize your West workspace
+
+```bash
+nix run .#westinit . west.yml .west-workspace
+```
+
+That's it! Your West workspace is now set up with all dependencies from the Nix store.
+
+---
+
+## The Three Commands
+
+West-nix provides three commands that mirror the West workflow:
+
+1. **`westupdate`** - Generate/update the lockfile from `west.yml` (like `west update` but outputs Nix)
+2. **`westlock`** - Convert existing West lockfile to Nix format (if you already have one)
+3. **`westinit`** - Initialize a West workspace from the lockfile (the main command you'll use)
+
+## Detailed Workflow
+
+### Step 1: Generate the lockfile (First Time Setup)
 
 From your West project directory (containing `west.yml`):
 
 ```bash
-# Option A: If you already have a frozen lockfile (westlock.yaml)
-westlock < westlock.yaml > westlock.nix
+# Generate westlock.nix from west.yml manifest
+nix run github:JPHutchins/west-nix#westupdate west.yml > westlock.nix
 
-# Option B: Generate from west.yml manifest (recommended)
-westupdate west.yml > westlock.nix
+# Add to git (required for flakes to see it)
+git add westlock.nix
 ```
 
 This creates `westlock.nix` containing all projects with locked revisions and Nix SHA256 hashes.
+
+**Why?** Just like `package-lock.json` or `Cargo.lock`, you need a lockfile before you can build/install. `westupdate` creates this lockfile from your `west.yml` manifest.
 
 ### 2. Create your flake
 
 See [flake.nix](./flake.nix) for a complete example. The key parts:
 
 ```nix
-inputs.west-nix.url = "github:youruser/west-nix";
+inputs.west-nix.url = "github:JPHutchins/west-nix";
 
 outputs = { self, nixpkgs, west-nix }:
   let
     westLib = west-nix.lib.${system};
     westProjects = westLib.mkWestProjects ./westlock.nix;
-    setupWorkspace = westLib.mkWestWorkspace { inherit westProjects; };
+    westinit = westLib.mkWestWorkspace { inherit westProjects; };
   in
   {
+    packages.${system} = {
+      inherit westinit;
+    };
+
     devShells.${system}.default = pkgs.mkShell {
-      buildInputs = [ setupWorkspace ];
+      buildInputs = [ westinit ];
       shellHook = ''
-        setup-west-workspace
+        # Auto-setup workspace on shell entry
+        if [ ! -L ".west-workspace/zephyr" ]; then
+          westinit "$PWD" west.yml .west-workspace
+        fi
+        source .west-workspace/env.sh
       '';
     };
   };
 ```
 
-### 3. Enter the dev shell
+### 3. Use the workspace
 
+**Option A: Via dev shell (recommended)**
 ```bash
 nix develop
 ```
 
-This will:
+This will automatically:
 - Fetch all West projects from the Nix store (cached, reproducible)
-- Create a `west-workspace/` subdirectory with symlinks to Nix store
-- Set up `west-workspace/.west/config` correctly
-- Export `ZEPHYR_BASE` pointing to the workspace
+- Create a `.west-workspace/` subdirectory with symlinks to Nix store
+- Set up `.west-workspace/.west/config` correctly
+- Export `ZEPHYR_BASE` and git config via sourcing `env.sh`
+
+**Option B: Manual initialization**
+```bash
+nix run .#westinit . west.yml .west-workspace
+source .west-workspace/env.sh
+```
 
 All projects are read-only Nix store paths with minimal git repos for West compatibility.
 
@@ -100,7 +144,7 @@ Converts a `westlock.nix` file (or list of project attrs) into derivations.
 mkWestWorkspace :: { westProjects } -> Derivation
 ```
 
-Creates a `setup-west-workspace` script that symlinks all projects.
+Creates a `westinit` script that symlinks all projects and sets up the workspace.
 
 **Parameters:**
 - `westProjects`: List of project derivations from `mkWestProjects`
@@ -108,15 +152,18 @@ Creates a `setup-west-workspace` script that symlinks all projects.
 **Usage:**
 ```bash
 # Required arguments: manifest-path, manifest-file, and workspace-path
-setup-west-workspace <manifest-path> <manifest-file> <workspace-path>
+westinit <manifest-path> <manifest-file> <workspace-path>
 
-# Example:
-setup-west-workspace zephyr west.yml ./west-workspace
+# Example: Your repo is the manifest
+westinit . west.yml ./.west-workspace
+
+# Example: Using an imported project's manifest
+westinit zephyr west.yml ./workspace
 ```
 
 **Arguments:**
-- `manifest-path`: Relative path from workspace root to the manifest project (should match a `path` in your `westlock.nix`)
-- `manifest-file`: Name of the manifest file (commonly `west.yml`, but can be any filename)
+- `manifest-path`: Path to directory containing the manifest file (e.g., `.` for current dir, `zephyr` for zephyr project)
+- `manifest-file`: Name of the manifest file (commonly `west.yml`)
 - `workspace-path`: Where to create the workspace
 
 ### `mkWestProject`
